@@ -1,10 +1,24 @@
 # AI Document Processor (ADP)
 
-YouTube Videos: 
-- [Overview](https://www.youtube.com/watch?v=Sd6J3MQ4ouc&t=10s) 
-- [Deployment Instructions](https://www.youtube.com/watch?v=TkUfFDO-c98)
-- [Local Deploy](https://www.youtube.com/watch?v=8G7wWJQLxOU&t=9s)
-  
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![Azure Functions](https://img.shields.io/badge/Azure-Functions-0078D4)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+## Project Structure
+
+pipeline/
+├── activities/
+│   ├── runDocIntel.py
+│   ├── callAoai.py
+│   └── writeToBlob.py
+├── function_app.py
+
+data/
+└── prompts.yaml
+
+scripts/
+└── deployment and local run scripts
+
 ## Description
 AI Document Processor Accelerator is designed to help companies leverage LLMs to automate document and file processing tasks. The accelerator uses bicep templates to provision Azure Function App, Storage account,  to manage your documents life cycle from raw PDF, word doc, or .mp3, extract meaningful entities and insights, and write an output report, CSV, or JSON to a blob storage container. 
 
@@ -35,7 +49,14 @@ AI Document Processor Accelerator is designed to help companies leverage LLMs to
 ### ZTA Network Architecture
 <img width="1840" height="935" alt="image" src="https://github.com/user-attachments/assets/41adbe41-c7de-4cbe-84a8-4110c28f40e4" />
 
+### Processing Flow
 
+1. User uploads document to Storage Account
+2. Azure Function is triggered
+3. Azure Document Intelligence extracts text
+4. Azure OpenAI analyzes content
+5. Structured JSON output is generated
+6. Results are stored in Blob Storage
 
 ## Pre-Requisites
 - az cli
