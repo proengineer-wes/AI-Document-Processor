@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+import time
 import azure.durable_functions as df
 import logging
 from pipelineUtils.blob_functions import list_blobs, get_blob_content, write_to_blob
@@ -23,15 +25,41 @@ def normalize_blob_name(container: str, raw_name: str) -> str:
     if raw_name.startswith(container + "/"):
         return raw_name[len(container) + 1:]
     return raw_name
+def log_docintel_metric(
+    blob_name: str,
+    container: str,
+    stage: str,
+    status: str,
+    duration_ms: int = 0,
+    error_message: str = None,
+):
+    metric = {
+        "activity": name,
+        "blob_name": blob_name,
+        "container": container,
+        "stage": stage,
+        "status": status,
+        "duration_ms": duration_ms,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "error_message": error_message,
+    }
 
+    logging.info(f"docintel_metric={json.dumps(metric)}")
 @bp.function_name(name)
 @bp.activity_trigger(input_name="blob_input")
 def extract_text_from_blob(blob_input: dict):
 
-    blob_name = blob_input.get('name')
-    container = blob_input.get('container')
+    start_time = time.perf_counter()
 
-    endpoint = config.get_value("AI_SERVICES_ENDPOINT")
+    blob_name = blob_input.get("name")
+    container = blob_input.get("container")
+
+    log_docintel_metric(
+        blob_name=blob_name,
+        container=container,
+        stage="document_intelligence",
+        status="started",
+    )
 
     try:
     
@@ -58,8 +86,29 @@ def extract_text_from_blob(blob_input: dict):
         if result.paragraphs:    
             paragraphs = "\n".join([paragraph.content for paragraph in result.paragraphs])            
         
+                duration_ms = int((time.perf_counter() - start_time) * 1000)
+
+        log_docintel_metric(
+            blob_name=blob_name,
+            container=container,
+            stage="document_intelligence",
+            status="completed",
+            duration_ms=duration_ms,
+        )
+
         return paragraphs
       
     except Exception as e:
+        duration_ms = int((time.perf_counter() - start_time) * 1000)
+
+        log_docintel_metric(
+            blob_name=blob_name,
+            container=container,
+            stage="document_intelligence",
+            status="failed",
+            duration_ms=duration_ms,
+            error_message=str(e),
+        )
+
         logging.error(f"Error processing {blob_input}: {e}")
-        raise  # Re-raise to allow Durable Functions to retry
+        raise
