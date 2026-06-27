@@ -54,6 +54,12 @@ def extract_text_from_blob(blob_input: dict):
     blob_name = blob_input.get("name")
     container = blob_input.get("container")
 
+    if not blob_name:
+        raise ValueError("Missing required blob input field: name")
+
+    if not container:
+        raise ValueError("Missing required blob input field: container")
+
     log_docintel_metric(
         blob_name=blob_name,
         container=container,
@@ -83,11 +89,14 @@ def extract_text_from_blob(blob_input: dict):
         
         result: AnalyzeResult = poller.result()
         logging.info(f"Analyze document completed with status: {result}")
-        if result.paragraphs:    
-            paragraphs = "\n".join([paragraph.content for paragraph in result.paragraphs])            
-        
-                duration_ms = int((time.perf_counter() - start_time) * 1000)
+        if not result.paragraphs:
+            raise ValueError(
+                f"Document Intelligence returned no paragraph content for blob: {normalized_blob_name}"
+            )
 
+        paragraphs = "\n".join([paragraph.content for paragraph in result.paragraphs])
+
+        return paragraphs
         log_docintel_metric(
             blob_name=blob_name,
             container=container,
