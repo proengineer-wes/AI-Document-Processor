@@ -82,13 +82,24 @@ def extract_text_from_blob(blob_input: dict):
 
         
         logging.info(f"Starting analyze document: {blob_content[:100]}...")  # Log the first 50 bytes of the file for debugging}")
+        model = config.get_value("DOCUMENT_INTELLIGENCE_MODEL")
+
+        if not model:
+            model = "prebuilt-read"
+
+        logging.info(f"Using Document Intelligence model: {model}")
+
         poller = client.begin_analyze_document(
-            # AnalyzeDocumentRequest Class: https://learn.microsoft.com/en-us/python/api/azure-ai-documentintelligence/azure.ai.documentintelligence.models.analyzedocumentrequest?view=azure-python
-            "prebuilt-read", AnalyzeDocumentRequest(bytes_source=blob_content)
-        )
-        
+            model,
+            AnalyzeDocumentRequest(bytes_source=blob_content)
+        )      
         result: AnalyzeResult = poller.result()
-        logging.info(f"Analyze document completed with status: {result}")
+        paragraph_count = len(result.paragraphs) if result.paragraphs else 0
+
+        logging.info(
+            f"Document analysis completed "
+            f"(model={model}, paragraphs={paragraph_count}, blob={normalized_blob_name})"
+        )
         if not result.paragraphs:
             raise ValueError(
                 f"Document Intelligence returned no paragraph content for blob: {normalized_blob_name}"
